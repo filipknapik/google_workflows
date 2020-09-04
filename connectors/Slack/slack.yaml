@@ -1,0 +1,62 @@
+################################################################################################
+#
+#  Slack connector for Google Workflows
+#
+###########
+#  Usage:
+#    Copy and paste one of the subworkflows to your source code:
+#       slackPushSecretManager - push message to slack. Use key from Google Secret Manager
+#       slackPushWithKey       - push message to slack. Use key provided explicitly
+#
+#    Use *WithKey if a single workflow execution needs to push high numnber of Slack messages. 
+#    This way you can make a single call to Secret Manager to retrieve a key, and then use it
+#    in subsequent calls. 
+#
+#    Use *SecretManager subworkflow in all other cases as it's more convenient. Just pass the
+#    name of the secret in Secret Manager with access key to Slack, and connector will retrieve
+#    the key and push the message
+#
+#    Read readme.md for more details!
+#
+################################################################################################
+
+slackPushWithSecretManager:
+    params: [message, secret]
+    steps:
+        - getSecret:
+            call: http.get
+            args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                type: OAuth2
+            result: slackkey
+        - decodeSecret:
+            assign:
+              - decodedSecret: ${text.decode(base64.decode(slackkey.body.payload.data))}
+        - pushMessage:
+            call: http.post
+            args:
+                url: ${"https://hooks.slack.com/services/"+decodedSecret}
+                headers:
+                    Content-Type: "application/json"
+                body:
+                    text: ${message}
+            result: slackResult
+        - returnResult:
+            return: ${slackResult}
+
+
+slackPushWithKey:
+    params: [message, secret]
+    steps:
+        - pushMessage:
+            call: http.post
+            args:
+                url: ${"https://hooks.slack.com/services/"+secret}
+                headers:
+                    Content-Type: "application/json"
+                body:
+                    text: ${message}
+            result: slackResult
+        - returnResult:
+            return: ${slackResult}
