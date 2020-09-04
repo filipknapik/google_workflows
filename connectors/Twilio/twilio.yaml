@@ -1,0 +1,77 @@
+################################################################################################
+#
+#  Twilio connector for Google Workflows
+#
+###########
+#  Usage:
+#    Copy and paste one of the subworkflows to your source code:
+#       twilioSendSMSSecretManager - send SMS with Twilio. Use key from Google Secret Manager
+#       twilioSendSMSWithKey       - send SMS with Twilio. Use key provided explicitly
+#
+#    Use *WithKey if a single workflow execution needs to push high numnber of Twilio messages. 
+#    This way you can make a single call to Secret Manager to retrieve a key, and then use it
+#    in subsequent calls. 
+#
+#    Use *SecretManager subworkflow in all other cases as it's more convenient. Just pass the
+#    name of the secret in Secret Manager with access key to Twilio, and connector will retrieve
+#    the key and push the message
+#
+#    Read readme.md for more details!
+#
+################################################################################################
+
+twilioSendSMSWithSecretManager:
+    params: [twilioAccountSIDSecret, twilioAuthTokenSecret, from, to, message]
+    steps:
+        - getTwilioAccount:
+            call: http.get
+            args:
+                url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + twilioAccountSIDSecret + "/versions/latest:access"}
+                auth:
+                    type: OAuth2
+            result: twilioAccount
+        - getTwilioAuthToken:
+            call: http.get
+            args:
+                url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + twilioAuthTokenSecret + "/versions/latest:access"}
+                auth:
+                    type: OAuth2
+            result: twilioAuthToken
+        - decodeSecrets:
+            assign:
+              - decodedAccount: ${text.decode(base64.decode(twilioAccount.body.payload.data))}
+              - decodedAuth: ${text.decode(base64.decode(twilioAuthToken.body.payload.data))}
+        - pushMessage:
+            call: http.post
+            args:
+                url: ${"https://api.twilio.com/2010-04-01/Accounts/" + decodedAccount + "/Messages.json"}
+                headers:
+                    Content-Type: "application/x-www-form-urlencoded"
+                    Authorization: ${"Basic "+base64.encode(text.encode(decodedAccount + ":" + decodedAuth))}
+                body:
+                    Body: ${message}
+                    From: ${from}
+                    To: ${to}
+            result: twilioResult
+        - returnResult:
+            return: ${twilioResult}
+
+twilioSendSMSWithKey:
+    params: [twilioAccountSIDKey, twilioAuthTokeKey, from, to, message]
+    steps:
+        - pushMessage:
+            call: http.post
+            args:
+                url: ${"https://api.twilio.com/2010-04-01/Accounts/" + twilioAccountSIDSecret + "/Messages.json"}
+                headers:
+                    Content-Type: "application/x-www-form-urlencoded"
+                    Authorization: ${"Basic "+base64.encode(text.encode(twilioAccountSIDKey + ":" + twilioAuthTokeKey))}
+                body:
+                    Body: ${message}
+                    From: ${from}
+                    To: ${to}
+            result: twilioResult
+        - returnResult:
+            return: ${slackResult}
+
+
