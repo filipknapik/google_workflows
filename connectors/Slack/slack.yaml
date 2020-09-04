@@ -36,7 +36,7 @@ slackPushWithSecretManager:
         - pushMessage:
             call: http.post
             args:
-                url: ${"https://hooks.slack.com/services/"+decodedSecret}
+                url: ${"https://hooks.slack.com/services/" + decodedSecret}
                 headers:
                     Content-Type: "application/json"
                 body:
@@ -45,14 +45,13 @@ slackPushWithSecretManager:
         - returnResult:
             return: ${slackResult}
 
-
 slackPushWithKey:
-    params: [message, secret]
+    params: [message, key]
     steps:
         - pushMessage:
             call: http.post
             args:
-                url: ${"https://hooks.slack.com/services/"+secret}
+                url: ${"https://hooks.slack.com/services/" + key}
                 headers:
                     Content-Type: "application/json"
                 body:
