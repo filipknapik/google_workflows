@@ -1,1 +1,39 @@
-###############
+###############################################
+#
+# Note: all fields below need to comply with 
+#
+#############################################
+
+sendGridSend:
+    params: [secret, from, to, subject, content, contentType]
+    steps:
+    - getSecret:
+        call: http.get
+        args:
+            url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+            auth:
+                type: OAuth2
+        result: sendGridKey
+    - decodeSecrets:
+        assign:
+        - decodedKey: ${text.decode(base64.decode(sendGridKey.body.payload.data))}
+    - sendMessage:
+        call: http.post
+        args:
+            url: https://api.sendgrid.com/v3/mail/send
+            headers:
+                Content-Type: "application/json"
+                Authorization: ${"Bearer " + decodedKey }
+            body:
+                personalizations:
+                - to:
+                    - email: ${to}
+                from:
+                    email: ${from}
+                subject: ${subject}
+                content:
+                - type: ${contentType}
+                  value: ${content}
+        result: sendGridResult
+    - returnValue:
+        return: ${sendGridResult}
