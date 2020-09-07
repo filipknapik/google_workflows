@@ -1,0 +1,126 @@
+
+# Method below maps to https://openweathermap.org/current
+openWeatherMapCurrent:
+    params: [secret, location]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: weatherKey
+      - decodeSecrets:
+            assign:
+              - decodedKey: ${text.decode(base64.decode(weatherKey.body.payload.data))}
+      - callAPI:
+          call: http.get
+          args:
+              url: https://api.openweathermap.org/data/2.5/weather
+              query:
+                  appid: ${decodedKey}
+                  q: ${location}
+          result: weatherResult
+      - returnValue:
+          return: ${weatherResult}
+
+# Method below maps to https://openweathermap.org/api/hourly-forecast
+openWeatherMapHourlyForecast:
+    params: [secret, location]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: weatherKey
+      - decodeSecrets:
+            assign:
+              - decodedKey: ${text.decode(base64.decode(weatherKey.body.payload.data))}
+      - callAPI:
+          call: http.get
+          args:
+              url: https://pro.openweathermap.org/data/2.5/forecast/hourly
+              query:
+                  appid: ${decodedKey}
+                  q: ${location}
+          result: weatherResult
+      - returnValue:
+          return: ${weatherResult}
+
+# Method below maps to https://openweathermap.org/forecast16
+openWeatherMapDailyForecast:
+    params: [secret, location, count]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: weatherKey
+      - decodeSecrets:
+            assign:
+              - decodedKey: ${text.decode(base64.decode(weatherKey.body.payload.data))}
+      - callAPI:
+          call: http.get
+          args:
+              url: https://api.openweathermap.org/data/2.5/forecast/daily
+              query:
+                  appid: ${decodedKey}
+                  q: ${location}
+                  cnt: ${count}
+          result: weatherResult
+      - returnValue:
+          return: ${weatherResult}
+
+# Method below maps to https://openweathermap.org/api/forecast30
+openWeatherMapClimaticForecast:
+    params: [secret, location]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: weatherKey
+      - decodeSecrets:
+            assign:
+              - decodedKey: ${text.decode(base64.decode(weatherKey.body.payload.data))}
+      - callAPI:
+          call: http.get
+          args:
+              url: https://pro.openweathermap.org/data/2.5/forecast/climate
+              query:
+                  appid: ${decodedKey}
+                  q: ${location}
+          result: weatherResult
+      - returnValue:
+          return: ${weatherResult}
+
+# Method below maps to https://openweathermap.org/forecast5
+openWeatherMap5DayForecast:
+    params: [secret, location]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: weatherKey
+      - decodeSecrets:
+            assign:
+              - decodedKey: ${text.decode(base64.decode(weatherKey.body.payload.data))}
+      - callAPI:
+          call: http.get
+          args:
+              url: https://api.openweathermap.org/data/2.5/forecast
+              query:
+                  appid: ${decodedKey}
+                  q: ${location}
+          result: weatherResult
+      - returnValue:
+          return: ${weatherResult}
