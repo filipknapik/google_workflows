@@ -4,14 +4,14 @@ Open source connector for OpenWeatherMap API.
 <h3>Overview</h3>
 
 It supports the following methods
-- Current Weather Data - openWeatherMapCurrent
-- Hourly Forecast 4 days - openWeatherMapHourlyForecast
-- Daily Forecast 16 days - openWeatherMapDailyForecast
-- Climatic Forecast 30 days - openWeatherMapClimaticForecast
-- 5 Day / 3 Hour Forecast - openWeatherMap5DayForecast
+- [Current Weather Data - openWeatherMapCurrent](#openWeatherMapCurrent)
+- [Hourly Forecast 4 days - openWeatherMapHourlyForecast](#openWeatherMapHourlyForecast)
+- [Daily Forecast 16 days - openWeatherMapDailyForecast](#openWeatherMapDailyForecast)
+- [Climatic Forecast 30 days - openWeatherMapClimaticForecast](#openWeatherMapClimaticForecast)
+- [5 Day / 3 Hour Forecast - openWeatherMap5DayForecast](#openWeatherMap5DayForecast)
 
 
-
+<br>
 <h3>Usage</h3>
 
 **OpenWeathMap**
@@ -27,7 +27,7 @@ It supports the following methods
 
 <h3>Methods</h3>
 
-**openWeatherMapCurrent**
+# openWeatherMapCurrent
 
 This method returns the current weather data for a given location according to https://openweathermap.org/current
 
@@ -51,7 +51,7 @@ openWeatherMapCurrent:
     # the rest of the subworkflow source code from this repo goes here...
 ```
 
-**openWeatherMapHourlyForecast**
+# openWeatherMapHourlyForecast
 
 This method returns hourly forecast weather data for a given location according to https://openweathermap.org/api/hourly-forecast
 
@@ -75,7 +75,7 @@ openWeatherMapHourlyForecast:
     # the rest of the subworkflow source code from this repo goes here...
 ```
 
-**openWeatherMapDailyForecast**
+# openWeatherMapDailyForecast
 
 This method returns daily forecast weather data for up to 16 days for a given location according to https://openweathermap.org/forecast16
 
@@ -101,7 +101,7 @@ openWeatherMapDailyForecast:
     # the rest of the subworkflow source code from this repo goes here...
 ```
 
-**openWeatherMapClimaticForecast**
+# openWeatherMapClimaticForecast
 
 This method returns 30 day climatic forecast for a given location according to https://openweathermap.org/api/forecast30
 
@@ -126,7 +126,7 @@ openWeatherMapClimaticForecast:
 ```
 
 
-**openWeatherMap5DayForecast**
+# openWeatherMap5DayForecast
 
 This method returns 5 day/3 hour forecast for a given location according to https://openweathermap.org/forecast5
 
