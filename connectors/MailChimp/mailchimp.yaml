@@ -1,12 +1,14 @@
-MESSAGE='{"key": "$YOUR_API_KEY", "message": 
-{"from_email": "hello@example.com", "subject": "Hello World", 
-"text": "Welcome to Mailchimp Transactional!", 
-"to": [{ "email": "freddie@example.com", "type": "to" }]}}'
-
-curl -sS -X POST "https://mandrillapp.com/api/1.0/messages/send" --header 'Content-Type: application/json' --data-raw "$MESSAGE"
+################################################
+#
+#
+# THIS ONE IS NOT WORKING YET....TRY OTHERS
+#
+#
+#
+################################################
 
 sendMailChimp:
-    params: [secret, from, to, subject, content, contentType]
+    params: [secret, from, to, subject, content]
     steps:
     - getSecret:
         call: http.get
@@ -14,27 +16,25 @@ sendMailChimp:
             url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
             auth:
                 type: OAuth2
-        result: sendGridKey
+        result: mailChimpKey
     - decodeSecrets:
         assign:
-        - decodedKey: ${text.decode(base64.decode(sendGridKey.body.payload.data))}
+        - decodedKey: ${text.decode(base64.decode(mailChimpKey.body.payload.data))}
     - sendMessage:
         call: http.post
         args:
-            url: https://api.sendgrid.com/v3/mail/send
+            url: https://mandrillapp.com/api/1.0/messages/send
             headers:
-                Content-Type: "application/json"
-                Authorization: ${"Bearer " + decodedKey }
+                Content-Type: application/json
             body:
-                personalizations:
-                - to:
-                    - email: ${to}
-                from:
-                    email: ${from}
-                subject: ${subject}
-                content:
-                - type: ${contentType}
-                  value: ${content}
-        result: sendGridResult
+                key: ${decodedKey}
+                message:
+                    from_email: ${from}
+                    subject: ${subject}
+                    text: ${content}
+                    to:
+                        email: ${to}
+                        type: "to"
+        result: mailChimpResult
     - returnValue:
-        return: ${sendGridResult}
+        return: ${mailChimpResult}
