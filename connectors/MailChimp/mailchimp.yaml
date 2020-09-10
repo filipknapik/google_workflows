@@ -1,11 +1,11 @@
-###################################################################
-#
-# Note: all fields below need to comply with SendGrid policies, 
-#       including 'from' email address
-#
-###################################################################
+MESSAGE='{"key": "$YOUR_API_KEY", "message": 
+{"from_email": "hello@example.com", "subject": "Hello World", 
+"text": "Welcome to Mailchimp Transactional!", 
+"to": [{ "email": "freddie@example.com", "type": "to" }]}}'
 
-sendGridSend:
+curl -sS -X POST "https://mandrillapp.com/api/1.0/messages/send" --header 'Content-Type: application/json' --data-raw "$MESSAGE"
+
+sendMailChimp:
     params: [secret, from, to, subject, content, contentType]
     steps:
     - getSecret:
