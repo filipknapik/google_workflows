@@ -1,8 +1,7 @@
 ################################################
 #
 #
-# THIS ONE IS NOT WORKING YET....TRY OTHERS
-#
+# THIS ONE IS NOT TESTED YET...
 #
 #
 ################################################
@@ -33,7 +32,7 @@ sendMailChimp:
                     subject: ${subject}
                     text: ${content}
                     to:
-                        email: ${to}
+                      - email: ${to}
                         type: "to"
         result: mailChimpResult
     - returnValue:

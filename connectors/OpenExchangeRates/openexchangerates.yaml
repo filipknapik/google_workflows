@@ -54,6 +54,90 @@ timeSeriesOpenExchangeRates:
                   symbols: ${symbols}
                   start: ${start}
                   end: ${end}
-          result: latestCurrencies
+          result: timeSeriesCurrencies
       - returnValue:
-          return: ${latestCurrencies}
+          return: ${timeSeriesCurrencies}
+
+historicalOpenExchangeRates:
+    params: [secret, date, base: USD, prettyprint: FALSE, show_alternative: FALSE, symbols: ""]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: sendGridKey
+      - decodeSecrets:
+          assign:
+            - decodedKey: ${text.decode(base64.decode(sendGridKey.body.payload.data))}
+      - getLatestCurrencies:
+          call: http.get
+          args:
+              url: ${"https://openexchangerates.org/api/historical/" + date + ".json"}
+              headers: 
+                  Authorization: ${"Token " + decodedKey}
+              query:
+                  base: ${base}
+                  prettyprint: ${prettyprint}
+                  show_alternative: ${show_alternative}
+                  symbols: ${symbols}
+          result: historicalCurrencies
+      - returnValue:
+          return: ${historicalCurrencies}
+
+ohlcOpenExchangeRates:
+    params: [secret, start_time, period: "1d", base: "USD", prettyprint: FALSE, show_alternative: FALSE, symbols: ""]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: sendGridKey
+      - decodeSecrets:
+          assign:
+            - decodedKey: ${text.decode(base64.decode(sendGridKey.body.payload.data))}
+      - getLatestCurrencies:
+          call: http.get
+          args:
+              url: ${https://openexchangerates.org/api/convert/19999.95/GBP/EUR?app_id=YOUR_APP_ID
+              headers: 
+                  Authorization: ${"Token " + decodedKey}
+              query:
+                  base: ${base}
+                  prettyprint: ${prettyprint}
+                  show_alternative: ${show_alternative}
+                  symbols: ${symbols}
+                  period: ${period}
+                  start_time: ${start_time}
+          result: ohlcCurrencies
+      - returnValue:
+          return: ${ohlcCurrencies}
+
+
+convertOpenExchangeRates:
+    params: [secret, value, from, to, prettyprint: FALSE]
+    steps:
+      - getSecret:
+          call: http.get
+          args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + secret + "/versions/latest:access"}
+              auth:
+                  type: OAuth2
+          result: sendGridKey
+      - decodeSecrets:
+          assign:
+            - decodedKey: ${text.decode(base64.decode(sendGridKey.body.payload.data))}
+      - getLatestCurrencies:
+          call: http.get
+          args:
+              url: ${"https://openexchangerates.org/api/convert/"+ string(value) + "/" + from + "/" + to}
+              headers: 
+                  Authorization: ${"Token " + decodedKey}
+              query:
+                  prettyprint: ${prettyprint}
+          result: convertCurrencies
+      - returnValue:
+          return: ${convertCurrencies}

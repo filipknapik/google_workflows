@@ -1,4 +1,4 @@
-# OpenWeatherMap connector for Google Workflows
+# Open Weather Map connector for Google Workflows
 Open source connector for OpenWeatherMap API. 
 
 <h3>Overview</h3>
