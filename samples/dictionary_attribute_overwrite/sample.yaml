@@ -1,0 +1,31 @@
+main:
+  steps:
+    - step1: 
+        call: getMyQuery
+        args:
+            myInput: "New Value for Variable C"
+        result: theQuery
+    - step2:
+        call: http.get
+        args:
+            url: https://us-central1-filipsdirtytests4.cloudfunctions.net/echo
+            query: ${theQuery}
+            auth:
+                type: OIDC
+        result: funcReturn
+    - step3:
+        return: ${funcReturn.body}
+        
+
+getMyQuery:
+  params: [myInput]
+  steps:
+    - createDictionary:
+        assign:
+          - outputVar:
+              variableA: "Value A"
+              variableB: "Value B"
+              variableC: ${myInput}
+              variableD: "Value D"
+    - returnValue:
+        return: ${outputVar}
