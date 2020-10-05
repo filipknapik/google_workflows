@@ -1,0 +1,102 @@
+main:
+    steps:
+      - initialize:
+          assign:
+            - myQuery: "select * from my table where table='aaa' and name='Agatha'"
+            - project: filipsdirtytests4
+      - tryOut:
+          call: readCache
+          args:
+              key: ${myQuery}
+              project: ${project}
+          result: readResult
+      - checkCache:
+          switch:
+            - condition: ${readResult == Null}
+              steps:
+                - callSomething:
+                    call: http.get
+                    args:
+                        url: https://us-central1-filipsdirtytests4.cloudfunctions.net/lastchars
+                        query: 
+                            myQuery: ${myQuery}       
+                    result: apiResult
+                - transformResult:
+                    assign:
+                      - readResult: ${apiResult.body}
+                - saveToCache:
+                    call: writeCache
+                    args:
+                        key: ${myQuery}
+                        project: ${project}
+                        value: ${readResult}
+      - lastStep:
+          return: ${readResult}
+
+
+# Helper subworkflows for reading and writing cache below
+# Ensure there is cache collection created in Firestore and
+# that the Service Account of the workflow has Firestore read/write permissions
+
+readCache:
+    params: [project, key, collection: "cache"]
+    steps:
+      - ReadItem:
+          try:
+              call: http.get
+              args:
+                  url: ${"https://firestore.googleapis.com/v1/projects/"+project+"/databases/(default)/documents/"+collection+"/"+key}
+                  auth:
+                      type: OAuth2
+              result: DocumentValue
+          except:
+              as: e
+              steps:
+                - notFound:
+                    return: Null
+      - createObject:
+          call: json.decode
+          args:
+              data: ${DocumentValue.body.fields.savedObject.stringValue}
+          result: resultObj
+      - returnCache:
+          return: ${resultObj}
+
+writeCache:
+    params: [project, key, value, collection: "cache"]
+    steps:
+      - createString:
+          call: json.encode_to_string
+          args:
+              data: ${value}
+          result: encodedString
+      - WriteItem:
+          call: http.request
+          args:
+              method: PATCH
+              url: ${"https://firestore.googleapis.com/v1/projects/"+project+"/databases/(default)/documents/"+collection+"/"+key}
+              auth:
+                  type: OAuth2
+              body:
+                  name: ${"projects/"+project+"/databases/(default)/documents/"+collection+"/"+key}
+                  fields:
+                      savedObject:
+                          stringValue: ${encodedString}
+          result: response
+      - updateTimestamp:
+          call: http.request
+          args:
+              method: PATCH
+              url: ${"https://firestore.googleapis.com/v1/projects/"+project+"/databases/(default)/documents/"+collection+"/"+key}
+              auth:
+                  type: OAuth2
+              query:
+                  updateMask.fieldPaths: updated
+              body:
+                  name: ${"projects/"+project+"/databases/(default)/documents/"+collection+"/"+key}
+                  fields:
+                      updated:
+                          timestampValue: ${response.body.updateTime}
+          result: response
+      - Found:
+          return: ${response}

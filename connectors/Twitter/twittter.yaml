@@ -1,0 +1,44 @@
+
+
+
+main:
+    steps:
+      - step1:
+          call: twitterGetBearer
+          args:
+              accessToken: "xvz1evFS4wEEPTGEFPHBog"
+              accessTokenSecret: "L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg"
+          result: finalOut
+      - step2:
+          return: ${finalOut}
+              
+
+twitterGetBearer:
+    params: [accessToken, accessTokenSecret]
+    steps:
+        - getAccessToken:
+            call: http.get
+            args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + accessToken + "/versions/latest:access"}
+              auth:
+                type: OAuth2
+            result: accessTokenValue
+        - decodeAccessToken:
+            assign:
+              - decodedAccessToken: ${text.decode(base64.decode(accessTokenValue.body.payload.data))}
+        - getAccessTokenSecret:
+            call: http.get
+            args:
+              url: ${"https://secretmanager.googleapis.com/v1/projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER") + "/secrets/" + accessTokenSecret + "/versions/latest:access"}
+              auth:
+                type: OAuth2
+            result: accessTokenSecretValue
+        - decodeAccessToken:
+            assign:
+              - decodedTokenSecretValue: ${text.decode(base64.decode(accessTokenSecretValue.body.payload.data))}
+        - bearerTokenCredentials:
+            assign:
+              - finalCredentials: ${base64.encode(text.encode(decodedAccessToken + ":" + decodedTokenSecretValue))}
+        - returnLast:
+            return: ${finalCredentials}
+      

@@ -1,0 +1,4 @@
+# Function dependencies, for example:
+# package>=version
+google-cloud-firestore>=1.9.0
+flask>=1.0.2
