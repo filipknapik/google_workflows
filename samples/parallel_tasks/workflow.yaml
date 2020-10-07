@@ -1,0 +1,143 @@
+main:
+    steps: 
+      - initiateWorkflow:
+          assign:
+            - tasks:
+                - "https://us-central1-filipsdirtytests4.cloudfunctions.net/longjob?id=1"
+                - "https://us-central1-filipsdirtytests4.cloudfunctions.net/longjob?id=2"
+                - "https://us-central1-filipsdirtytests4.cloudfunctions.net/longjob?id=3"
+      - runTasks:
+          call: processTasks
+          args:
+              tasks: ${tasks}
+          result: taskResult
+      - lastStep:
+          return: ${taskResult}
+
+processTasks:
+    params: [tasks, delay: 30]
+    steps:
+      - getQueueName:
+          assign:
+            - queue: "abrakadabra35"
+            - project: "filipsdirtytests4"
+      - createQueue:
+          call: http.post
+          args:
+              url: ${"https://cloudtasks.googleapis.com/v2/projects/" + project + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues"}
+              auth:
+                  type: OAuth2
+              body:
+                  name: ${"projects/" + project + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue }
+                  retryConfig:
+                      maxAttempts: 1
+      - startTasks:
+          call: startTasks
+          args:
+              queue: ${queue}
+              tasks: ${tasks}
+      - waitTillDone:
+          call: waitForTasksCompletion
+          args:
+              queue: ${queue}
+              delay: ${delay}
+          result: output
+      - checkAllTasks:
+          call: checkTasks
+          args:
+              queue: ${queue}
+              tasks: ${tasks}
+          next: theEnd
+      - deleteQueue:
+          call: http.request
+          args:
+              method: DELETE
+              url: ${"https://cloudtasks.googleapis.com/v2/projects/" + project + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue}
+              auth:
+                  type: OAuth2
+      - theEnd:
+          return: ${output}
+
+startTasks:
+    params: [queue, tasks]
+    steps:
+        - initiateVars:
+            assign:
+              - i: 0
+        - check_condition:
+            switch:
+              - condition: ${len(tasks) > i}
+                next: createTask
+            next: exitStartTasks
+        - createTask:
+            call: http.post
+            args:
+                url: ${"https://cloudtasks.googleapis.com/v2/projects/filipsdirtytests4/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue + "/tasks"}
+                auth:
+                    type: OAuth2
+                body:
+                    task:
+                        name: ${"projects/filipsdirtytests4/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue +"/tasks/" + queue + string(i)}
+                        httpRequest:
+                            url: ${tasks[i]}
+        - increaseCount:
+            assign:
+              - i: ${i+1}
+            next: check_condition
+        - exitStartTasks:
+            return: ${i}
+
+checkTasks:
+    params: [queue, tasks]
+    steps:
+        - initiateVars:
+            assign:
+              - i: 0
+        - check_condition:
+            switch:
+              - condition: ${len(tasks) > i}
+                next: getTheTask
+            next: exitGetTasks
+        - getTheTask:
+            call: http.get
+            args:
+                url: ${"https://cloudtasks.googleapis.com/v2/projects/filipsdirtytests4/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue + "/tasks/" +  queue + string(i)}
+                auth:
+                    type: OAuth2
+            result: taskStatus
+        - printTask:
+            call: sys.log
+            args:
+                text: ${json.encode_to_string(taskStatus.body)}
+        - increaseCount:
+            assign:
+              - i: ${i+1}
+            next: check_condition
+        - exitGetTasks:
+            return: ${i}
+
+waitForTasksCompletion:
+    params: [queue, delay]
+    steps:
+      - waitAMoment:
+          call: sys.sleep
+          args:
+              seconds: ${int(delay)}
+      - waitForAllTasks:
+          call: http.get
+          args:
+              url: ${"https://cloudtasks.googleapis.com/v2/projects/filipsdirtytests4/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/queues/" + queue + "/tasks"}
+              auth:
+                  type: OAuth2
+          result: listOfTasks
+      - logResponse:
+          call: sys.log
+          args:
+              text: ${json.encode_to_string(listOfTasks.body)}
+      - checkIfDone:
+          switch:
+            - condition: ${not("tasks" in listOfTasks.body)}
+              next: last
+          next: waitAMoment
+      - last:
+          return: "OK"
