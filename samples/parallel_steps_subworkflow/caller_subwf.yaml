@@ -1,0 +1,53 @@
+main:
+    params: [args]
+    steps:
+      - initiateVars:
+          assign:
+            - project: filipstest5
+      - markStart:
+          call: googleapis.firestore.v1.projects.databases.documents.patch
+          args:
+              name: ${"projects/" + project + "/databases/(default)/documents/" + args.execution + "/" + args.id}
+              body:
+                  fields:
+                      status: 
+                          stringValue: "running"
+                      taskId:
+                          stringValue: ${args.id}
+          result: theResult
+      - startJob:
+          try:
+              call: http.request
+              args:
+                  method: ${args.method}
+                  url: ${args.url}
+                  body: ${args.body}
+                  query: ${args.query}
+              result: taskResult
+          except:
+              as: e
+              steps:
+                - assignVars:
+                    assign: 
+                      - jobStatus: "failure"
+                      - jobResult: ${e}
+                    next: markEnd
+      - setStatus:
+          assign:
+            - jobStatus: "success"
+            - jobResult: ${taskResult.body}
+      - markEnd:
+          call: googleapis.firestore.v1.projects.databases.documents.patch
+          args:
+              name: ${"projects/" + project + "/databases/(default)/documents/" + args.execution + "/" + args.id}
+              body:
+                  fields:
+                      status: 
+                          stringValue: ${jobStatus}
+                      result:
+                          stringValue: ${json.encode_to_string(jobResult)}
+                      taskId:
+                          stringValue: ${args.id}
+          result: theResult
+      - step2:
+          return: ${theResult}

@@ -1,0 +1,187 @@
+
+#################################################################################
+#
+#    Parallel steps subworkflows 
+#    BEGINNING
+#   
+#    Copy / paste entire code to your workflow.
+#    Run using parallelTasks subworkflow, following instructions in the repo.
+#
+#################################################################################
+
+parallelTasks:
+    params: [tasks, polling: 30]
+    steps:
+      - setEnvironment:
+          assign:
+            - execution: "abrakadabra92"
+            - project: "filipstest5"
+            - location: ${sys.get_env("GOOGLE_CLOUD_LOCATION")}
+      - startTasks:
+          call: startTasks
+          args:
+              project: ${project}
+              execution: ${execution}
+              tasks: ${tasks}
+              location: ${location}
+      - waitTillDone:
+          call: waitForTasksCompletion
+          args:
+              execution: ${execution}
+              project: ${project}
+              delay: ${polling}
+          result: output
+      - theEnd:
+          return: ${output}
+
+startTasks:
+    params: [project, execution, tasks, location]
+    steps:
+        - initiateVars:
+            assign:
+              - i: 0
+        - check_condition:
+            switch:
+              - condition: ${len(tasks) > i}
+                next: setDefaults
+            next: exitStartTasks
+        - setDefaults:
+            assign:
+              - body: Null
+              - query: Null
+              - auth: Null
+        - bodyCheck:
+            switch:
+              - condition: ${"body" in tasks[i]}
+                assign: 
+                  - body: ${tasks[i].body}
+        - queryCheck:
+            switch:
+              - condition: ${"query" in tasks[i]}
+                assign: 
+                  - query: ${tasks[i].query}
+        - authCheck:
+            switch:
+              - condition: ${"auth" in tasks[i]}
+                assign: 
+                  - auth: ${tasks[i].auth}
+        - prepareArguments:
+            assign:
+              - arguments:
+                  url: ${tasks[i].url}
+                  id: ${"task"+string(i)}
+                  execution: ${execution}
+                  method: ${tasks[i].method}
+                  body: ${body}
+                  query: ${query}
+                  auth: ${auth}
+        - createTask:
+            call: http.post
+            args:
+                url: ${"https://workflowexecutions.googleapis.com/v1beta/projects/" + project + "/locations/" + location + "/workflows/subwf/executions"}
+                auth:
+                    type: OAuth2
+                body:
+                    argument: ${json.encode_to_string(arguments)}
+            result: executionResult
+        - increaseCount:
+            assign:
+              - i: ${i+1}
+            next: check_condition
+        - exitStartTasks:
+            return: ${i}
+
+waitForTasksCompletion:
+    params: [execution, project, delay]
+    steps:
+      - waitAMoment:
+          call: sys.sleep
+          args:
+              seconds: ${int(delay)}
+      - waitForAllTasks:
+          call: http.post
+          args:
+              url: ${"https://firestore.googleapis.com/v1/projects/" + project + "/databases/(default)/documents:runQuery"}
+              auth:
+                  type: OAuth2
+              body:
+                  structuredQuery:
+                      select:
+                          fields:
+                            - fieldPath: "taskId"
+                      from: 
+                          collectionId: ${execution}
+                          allDescendants: False
+                      where:
+                          fieldFilter:
+                              field: 
+                                  fieldPath: "status"
+                              op: "EQUAL"
+                              value: 
+                                  stringValue: "running"
+          result: listOfTasks
+      - checkIfDone:
+          switch:
+            - condition: ${len(listOfTasks.body)<=1 and not("document" in listOfTasks.body[0])}
+              next: getAllTasks
+          next: waitAMoment
+      - getAllTasks:
+          call: http.post
+          args:
+              url: ${"https://firestore.googleapis.com/v1/projects/" + project + "/databases/(default)/documents:runQuery"}
+              auth:
+                  type: OAuth2
+              body:
+                  structuredQuery:
+                      from: 
+                          collectionId: ${execution}
+                          allDescendants: False
+          result: allTasksResponse
+      - summarizeResults:
+          assign:
+            - allTasks: ${allTasksResponse.body}
+            - i: 0
+            - allTasksStr: "{\"tasks\":["
+            - status: "success"
+      - check_condition:
+          switch:
+            - condition: ${len(allTasks) > i}
+              next: appendComma
+          next: finalizeArray
+      - appendComma:
+           switch:
+             - condition: ${i>0}
+               assign:
+                 - allTasksStr: ${allTasksStr + ","}
+      - appendResult: 
+           assign:
+            - allTasksStr: ${allTasksStr + "{\"id\":\""+allTasks[i].document.fields.taskId.stringValue+"\",\"result\":"+allTasks[i].document.fields.result.stringValue+",\"status\":\""+allTasks[i].document.fields.status.stringValue+"\"}"}
+      - deletefromFirestore:
+           call: http.request
+           args:
+               url: ${"https://firestore.googleapis.com/v1/projects/" + project + "/databases/(default)/documents/" + execution + "/" + allTasks[i].document.fields.taskId.stringValue}
+               method: DELETE
+               auth:
+                   type: OAuth2
+      - checkResult:
+          switch:
+            - condition: ${allTasks[i].document.fields.status.stringValue == "failure"}
+              assign:
+                - status: "failure"
+      - increaseCount:
+          assign:
+            - i: ${i+1}
+          next: check_condition
+      - finalizeArray:
+          assign:
+            - allTasksStr: ${allTasksStr + "],\"status\":\"" + status + "\"}"}
+            - finalResponse: ${json.decode(allTasksStr)}
+      - returnResult:
+          return: ${finalResponse}
+
+#################################################################################
+#
+#    Parallel steps subworkflows 
+#    END
+#
+#################################################################################
