@@ -15,7 +15,7 @@ For each of the tasks in an array, it is starting an execution of a "helper" wor
 
 ## Usage instruction
 
-All steps below should 
+Run all these steps in a single project: 
 1. Create a Service Account that has read/write permissions to Firestore/Datastore and invoker privileges for Workflows
 2. Create a workflow using Service Account above and "caller_subwf" name based on source code from "caller_subwf.yaml" file from this repository
 3. Paste the contents of "parallel.yaml" file at the end of the source code of the workflow where you want to run parallel tasks
@@ -55,11 +55,10 @@ The result of parallel tasks execution is a dictionary:
 "tasks":
     [
         {
-            "status": "success|failure"
-            "result": HTTP_response_of_the_task
-            "id": task_id
+            "status": "success|failure",
+            "result": "[HTTP_response_of_the_task]",
+            "id": "[task_id]"
         },
-        ...
     ]
 ```
 
