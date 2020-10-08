@@ -15,11 +15,12 @@ For each of the tasks in an array, it is starting an execution of a "helper" wor
 
 ## Usage instruction
 
-Run all these steps in a single project: 
-1. Create a Service Account that has read/write permissions to Firestore/Datastore and invoker privileges for Workflows
-2. Create a workflow using Service Account above and "caller_subwf" name based on source code from "caller_subwf.yaml" file from this repository
-3. Paste the contents of "parallel.yaml" file at the end of the source code of the workflow where you want to run parallel tasks
-4. Run your tasks using a call to parallelTasks subworkflows, as shown below.
+Run all these steps in a single project:
+1. Enable Firestore API in Cloud Console
+2. Create a Service Account that has read/write permissions to Firestore/Datastore and invoker privileges for Workflows
+3. Create a workflow using Service Account above and "caller_subwf" name based on source code from "caller_subwf.yaml" file from this repository
+4. Paste the contents of "parallel.yaml" file at the end of the source code of the workflow where you want to run parallel tasks
+5. Run your tasks using a call to parallelTasks subworkflows, as shown below.
 
 ```yaml
 main:
