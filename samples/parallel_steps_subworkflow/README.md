@@ -1,7 +1,7 @@
 # Parallel Tasks example for Google Workflows
 
-Google Workflows team is working on a native support for execution of parallel tasks in a Workflow.
-Customers that need to use this capability now, can use the guidelines in this repository to run their tasks in parallel already now. 
+At this point, Workflows doesn't support parallel execution of workflow steps natively. 
+Customers that need to run workflow steps in parallel can use the guidelines in this repository to run their tasks in parallel already now. 
 
 ## How does it work?
 The solution takes an array of task definitions, with array items containing
