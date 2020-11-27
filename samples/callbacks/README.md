@@ -28,8 +28,8 @@ Workflows doesn't support callbacks out of the box today. To address the need, s
 # Testing the sample
 + In Cloud Console, execute the workflow and place {"runID":"run123"} in the input window
 + Go to the Logs tab of the workflow in Cloud Console and see the callback URL produced
-+ You can wait a minute or two to see that workflow execution is still active
-+ Paste the callback URL in a browser window and observe that workflow execution is over
++ You can wait a minute or two to see that the workflow execution is still active
++ Paste the callback URL in a browser window and see back in the list of worfklow executions that the worfklow execution is over (it takes time, as there is a sleep in a polling loop)
 + The model also supports callbacks that pass some data back. To pass data as part of the callback, add "&value=Hello%20World" at the end of the URL when executing it in the browser. You will "Hello World" in the workflow output
 
 # Other considerations
