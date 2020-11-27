@@ -1,0 +1,73 @@
+main:
+    params: [args]
+    steps:
+      - getLink:
+          call: getCallbackURL
+          args:
+              functionName: "callbackFnc"
+              runID: ${args.runID}
+              step: "Step1"
+          result: step1URL
+      - logLink:
+          call: sys.log
+          args:
+              text: ${"Callback URL " + step1URL}
+      - doSomeWaiting:
+          call: waitForResponse
+          args:
+              runID: ${args.runID}
+              step: "Step1"
+          result: callbackResult
+      - returnVal:
+          return: ${callbackResult.body}
+
+waitForResponse:
+    params: [runID, step, backoff: 30]
+    steps: 
+      - initVariables:
+          assign:
+            - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            - collection: "workflow_callbacks" 
+            - document: ${runID + "_" + step}
+            - documentLink: ${"projects/"+project+"/databases/(default)/documents/"+collection+"/"+document}
+      - readResponse:
+          try:
+              call: googleapis.firestore.v1.projects.databases.documents.get
+              args:
+                  name: ${documentLink}
+              result: readResult
+          except:
+              as: e
+              steps:
+                  - handleFirestoreReadError:
+                      switch:
+                        - condition: ${e.code == 404}
+                          next: waitBeforeRetry
+                        - condition: ${e.code == 403}
+                          raise: "Error authenticating to Firestore"
+                  - unhandledException:
+                      raise: ${e}
+          next: deleteEntry
+      - waitBeforeRetry:
+          call: sys.sleep
+          args:
+              seconds: ${backoff}
+          next: readResponse
+      - deleteEntry:
+          call: googleapis.firestore.v1.projects.databases.documents.delete
+          args:
+              name: ${documentLink}
+      - gotResponse:
+          return: ${readResult}
+
+getCallbackURL:
+    params: [functionName, runID, step]
+    steps:
+      - createLink:
+          assign:
+            - location: ${sys.get_env("GOOGLE_CLOUD_LOCATION")}
+            - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            - callbackFunction: ${"https://" + location + "-" + project + ".cloudfunctions.net/" + functionName}
+            - fullLink: ${callbackFunction + "?runID="+ runID + "&step=" + step}
+      - returnLink:
+          return: ${fullLink}
