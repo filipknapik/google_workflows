@@ -35,5 +35,8 @@ Workflows doesn't support callbacks out of the box today. To address the need, s
 # Other considerations
 + The subworkflow that is doing the blocking performs periodic polling to Firestore. The default interval is set to 30 seconds. To modify this value, add e.g. "backoff: 240" to the args in the call to waitForResponse subworkflow
 + In the week of Nov 30, 2020, we will make a change to connectors to Firestore (that are not yet formally launched). You will need to replace ${callbackResult.body} with ${callbackResult} (body will be removed)
++ The solution uses a combination of runID and step name to uniquely identify a callback. The step name is more for future use, like with parallel steps where you need to distinguish not only the execution but also the step that is responding
+
+Contributions or change requests are welcome!
 
 Contact knapik@google.com in case of any questions. 
